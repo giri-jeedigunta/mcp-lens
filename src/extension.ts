@@ -6,10 +6,10 @@
  */
 
 import * as vscode from 'vscode';
-import { MCPDataProvider } from './providers/mcpDataProvider';
+import { MCPCardProvider, MCPCardTreeItem } from './providers/mcpCardProvider';
 import { MCPDetailsProvider } from './providers/mcpDetailsProvider';
 import { COMMANDS, VIEWS } from './constants';
-import { type MCPFilter } from './types';
+import { startMCPServer, stopMCPServer, restartMCPServer, stopAllMCPs } from './utils/mcpControl';
 
 /**
  * Activate the extension
@@ -24,39 +24,58 @@ export function activate(context: vscode.ExtensionContext): void {
 	outputChannel.appendLine('='.repeat(80));
 	console.log('MCP Lens extension is now active!');
 
-	// Create the MCP data provider
-	outputChannel.appendLine('Creating MCP Data Provider...');
-	const mcpDataProvider = new MCPDataProvider(context, outputChannel);
+	// Create the MCP card provider
+	outputChannel.appendLine('Creating MCP Card Provider...');
+	const mcpCardProvider = new MCPCardProvider(context, outputChannel);
 
 	// Register the tree view
 	const treeView = vscode.window.createTreeView(VIEWS.MCP_EXPLORER, {
-		treeDataProvider: mcpDataProvider,
+		treeDataProvider: mcpCardProvider,
 		showCollapseAll: true,
+	});
+
+	// Add file decorations to make cards look like boxes
+	const cardDecoration = vscode.window.createTextEditorDecorationType({
+		border: '1px solid',
+		borderRadius: '4px',
+	});
+
+	// Register file decoration provider for visual card appearance
+	const decorationProvider = vscode.window.registerFileDecorationProvider({
+		provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+			if (uri.scheme === 'mcp-card') {
+				return {
+					badge: '▪',
+					tooltip: 'MCP Server Card',
+				};
+			}
+			return undefined;
+		},
 	});
 
 	// Register refresh command
 	const refreshCommand = vscode.commands.registerCommand(COMMANDS.REFRESH, async () => {
 		outputChannel.appendLine('\n--- Refresh Command Triggered ---');
-		await mcpDataProvider.loadMCPs();
+		await mcpCardProvider.loadMCPs();
 		vscode.window.showInformationMessage('MCP list refreshed');
 	});
 
 	// Register filter commands
 	const filterBothCommand = vscode.commands.registerCommand(COMMANDS.FILTER_BOTH, () => {
 		outputChannel.appendLine('\nFilter changed to: BOTH');
-		mcpDataProvider.setFilter('both');
+		mcpCardProvider.setFilter('both');
 		vscode.window.showInformationMessage('Showing both Global and Local MCPs');
 	});
 
 	const filterGlobalCommand = vscode.commands.registerCommand(COMMANDS.FILTER_GLOBAL, () => {
 		outputChannel.appendLine('\nFilter changed to: GLOBAL');
-		mcpDataProvider.setFilter('global');
+		mcpCardProvider.setFilter('global');
 		vscode.window.showInformationMessage('Showing Global MCPs only');
 	});
 
 	const filterLocalCommand = vscode.commands.registerCommand(COMMANDS.FILTER_LOCAL, () => {
 		outputChannel.appendLine('\nFilter changed to: LOCAL');
-		mcpDataProvider.setFilter('local');
+		mcpCardProvider.setFilter('local');
 		vscode.window.showInformationMessage('Showing Local MCPs only');
 	});
 
@@ -122,13 +141,13 @@ export function activate(context: vscode.ExtensionContext): void {
 					const isGlobal = selected === 'Global MCP';
 					outputChannel.appendLine(`File type selected: ${selected}`);
 					if (isGlobal) {
-						mcpDataProvider.setCustomGlobalPath(fileUri[0].fsPath);
+						mcpCardProvider.setCustomGlobalPath(fileUri[0].fsPath);
 						outputChannel.appendLine(`Set custom global path: ${fileUri[0].fsPath}`);
 					} else {
-						mcpDataProvider.setCustomLocalPath(fileUri[0].fsPath);
+						mcpCardProvider.setCustomLocalPath(fileUri[0].fsPath);
 						outputChannel.appendLine(`Set custom local path: ${fileUri[0].fsPath}`);
 					}
-					await mcpDataProvider.loadMCPs();
+					await mcpCardProvider.loadMCPs();
 					vscode.window.showInformationMessage(
 						`${selected} file located: ${fileUri[0].fsPath}`
 					);
@@ -137,30 +156,75 @@ export function activate(context: vscode.ExtensionContext): void {
 		}
 	);
 
+	// Register MCP control commands
+	const startMCPCommand = vscode.commands.registerCommand(
+		COMMANDS.START_MCP,
+		async (item: MCPCardTreeItem) => {
+			const mcp = item?.parentMcp ?? item?.mcpItem;
+			if (mcp) {
+				const success = await startMCPServer(mcp, outputChannel);
+				if (success) {
+					mcpCardProvider.refresh();
+				}
+			}
+		}
+	);
+
+	const stopMCPCommand = vscode.commands.registerCommand(
+		COMMANDS.STOP_MCP,
+		async (item: MCPCardTreeItem) => {
+			const mcp = item?.parentMcp ?? item?.mcpItem;
+			if (mcp) {
+				const success = await stopMCPServer(mcp, outputChannel);
+				if (success) {
+					mcpCardProvider.refresh();
+				}
+			}
+		}
+	);
+
+	const restartMCPCommand = vscode.commands.registerCommand(
+		COMMANDS.RESTART_MCP,
+		async (item: MCPCardTreeItem) => {
+			const mcp = item?.parentMcp ?? item?.mcpItem;
+			if (mcp) {
+				const success = await restartMCPServer(mcp, outputChannel);
+				if (success) {
+					mcpCardProvider.refresh();
+				}
+			}
+		}
+	);
+
 	// Register tree view click handler
 	treeView.onDidChangeSelection((e) => {
-		if (e.selection.length > 0 && e.selection[0].mcpItem) {
-			vscode.commands.executeCommand(COMMANDS.OPEN_MCP_DETAILS, e.selection[0]);
+		const selected = e.selection[0] as MCPCardTreeItem;
+		if (selected?.mcpItem && selected.itemType === 'mcp-card') {
+			vscode.commands.executeCommand(COMMANDS.OPEN_MCP_DETAILS, selected);
 		}
 	});
 
 	// Add all commands to subscriptions
 	context.subscriptions.push(
 		treeView,
+		decorationProvider,
 		refreshCommand,
 		filterBothCommand,
 		filterGlobalCommand,
 		filterLocalCommand,
 		openDetailsCommand,
 		openInspectorCommand,
-		locateMCPFileCommand
+		locateMCPFileCommand,
+		startMCPCommand,
+		stopMCPCommand,
+		restartMCPCommand
 	);
 
 	// Initial load
 	outputChannel.appendLine('\n--- Initial MCP Load ---');
-	mcpDataProvider.loadMCPs().then(() => {
+	mcpCardProvider.loadMCPs().then(() => {
 		outputChannel.appendLine('Initial load completed');
-	}).catch(err => {
+	}).catch((err: unknown) => {
 		outputChannel.appendLine(`Initial load error: ${err}`);
 	});
 }
@@ -169,5 +233,7 @@ export function activate(context: vscode.ExtensionContext): void {
  * Deactivate the extension
  */
 export function deactivate(): void {
-	// Cleanup if needed
+	// Stop all running MCPs
+	const outputChannel = vscode.window.createOutputChannel('MCP Lens');
+	stopAllMCPs(outputChannel);
 }

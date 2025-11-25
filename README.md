@@ -8,19 +8,24 @@
 ## Features
 
 - 🌍 **Global & Local MCP Discovery**: Automatically detects MCP configurations from global VS Code settings and local workspace `.vscode/mcp.json` files
-- 🔍 **Interactive Explorer**: Browse MCPs in a dedicated activity bar view with collapsible sections
-- 📊 **Detailed MCP Information**: View comprehensive details including:
+- 🎴 **Card-Based UI**: Beautiful card layout showing MCPs with status indicators, descriptions, and tool counts at a glance
+- 🔍 **Interactive Explorer**: Browse MCPs in a dedicated activity bar view with expandable cards
+- 📊 **Detailed MCP Information**: Click to expand any MCP card to view:
+  - Real-time status (Running ●, Stopped ○, Error ✕)
   - Configuration (command, arguments, environment variables)
-  - Available tools and their descriptions
-  - Status and operational mode
-  - Author information
+  - Available tools with count and details
+  - Control buttons (Start, Stop, Restart)
+- ⚡ **MCP Control**: Start, stop, and restart MCP servers directly from the UI
+  - Inline action buttons on status items
+  - Context menu options on MCP cards
+  - Real-time process management
 - 🎯 **Smart Filtering**: Filter view to show:
   - Both Global and Local MCPs
   - Global MCPs only
   - Local MCPs only
 - 🔧 **MCP Inspector Integration**: Open MCPs directly with `npx mcp-inspector` for deeper analysis
 - 📁 **Manual File Location**: Fallback option to manually locate MCP configuration files
-- 🎨 **Modern UI**: Clean, intuitive interface inspired by VS Code's native explorer
+- 🎨 **Modern UI**: Clean card-based interface with color-coded status indicators and rich tooltips
 
 ## Installation
 

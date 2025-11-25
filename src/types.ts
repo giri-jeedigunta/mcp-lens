@@ -90,12 +90,19 @@ export interface MCPItem {
 	log?: string;
 	author?: string;
 	mode?: string;
+	description?: string;
+	toolCount?: number;
 }
 
 /**
  * Filter options for MCP view
  */
 export type MCPFilter = 'both' | 'global' | 'local';
+
+/**
+ * Tree item types for card-based UI
+ */
+export type TreeItemType = 'section' | 'mcp-card' | 'mcp-detail' | 'tools-list' | 'tool-item' | 'separator';
 
 /**
  * OS-specific paths configuration

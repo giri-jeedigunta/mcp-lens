@@ -89,6 +89,24 @@
         "title": "Locate MCP File",
         "category": "MCP Lens",
         "icon": "$(folder-opened)"
+      },
+      {
+        "command": "mcp-lens.startMCP",
+        "title": "Start MCP Server",
+        "category": "MCP Lens",
+        "icon": "$(play)"
+      },
+      {
+        "command": "mcp-lens.stopMCP",
+        "title": "Stop MCP Server",
+        "category": "MCP Lens",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "mcp-lens.restartMCP",
+        "title": "Restart MCP Server",
+        "category": "MCP Lens",
+        "icon": "$(debug-restart)"
       }
     ],
     "menus": {
@@ -121,14 +139,44 @@
       ],
       "view/item/context": [
         {
+          "command": "mcp-lens.startMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-status",
+          "group": "inline@1"
+        },
+        {
+          "command": "mcp-lens.stopMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-status",
+          "group": "inline@2"
+        },
+        {
+          "command": "mcp-lens.restartMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-status",
+          "group": "inline@3"
+        },
+        {
           "command": "mcp-lens.openMCPDetails",
-          "when": "view == mcpExplorer && viewItem == mcpItem",
+          "when": "view == mcpExplorer && viewItem == mcp-card",
           "group": "navigation@1"
         },
         {
           "command": "mcp-lens.openWithInspector",
-          "when": "view == mcpExplorer && viewItem == mcpItem",
+          "when": "view == mcpExplorer && viewItem == mcp-card",
           "group": "navigation@2"
+        },
+        {
+          "command": "mcp-lens.startMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-card",
+          "group": "control@1"
+        },
+        {
+          "command": "mcp-lens.stopMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-card",
+          "group": "control@2"
+        },
+        {
+          "command": "mcp-lens.restartMCP",
+          "when": "view == mcpExplorer && viewItem == mcp-card",
+          "group": "control@3"
         }
       ]
     }
