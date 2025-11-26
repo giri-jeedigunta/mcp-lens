@@ -1,53 +1,31 @@
-# MCP Lens
+# 📦 Repository Moved
 
-**MCP Lens** is an interactive Visual Studio Code extension that provides a beautiful, intuitive interface for exploring and managing both global and local Model Context Protocol (MCP) servers.
+This repository has been moved to the MCP Lens organization for better open-source collaboration and maintenance.
 
-[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/giri-jeedigunta/mcp-lens)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+## 🔗 New Location
 
----
+**Please visit the new repository:**
 
-> **✨ Essential for GitHub Copilot & VS Code Copilot Users**
-> 
-> If you're an avid Copilot user working with Model Context Protocol (MCP) servers, this extension is a must-have for managing and monitoring your MCP configurations.
+### [https://github.com/mcp-lens/mcp-lens](https://github.com/mcp-lens/mcp-lens)
 
 ---
 
-## Why MCP Lens?
+## 📌 What This Means
 
-As MCP servers become integral to AI-powered development workflows, managing multiple configurations can be challenging. MCP Lens provides:
+- ✅ All code, issues, and development have moved to the new organization
+- ✅ The extension continues to be actively maintained and improved
+- ✅ Better structure for community contributions and open-source collaboration
+- ✅ Same great features, now with a dedicated organization
 
-- **Visual Management**: See all your MCP servers (global and workspace-specific) in one elegant view
-- **Real-Time Monitoring**: Watch servers start, monitor tool counts, and track status changes live
-- **Easy Configuration**: Quick access to edit your `mcp.json` files with proper validation
-- **Developer-Friendly**: Built by developers, for developers who work with Copilot and MCP daily
+## 🚀 Get the Extension
 
-## Features
+Install **MCP Lens** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mcp-lens.mcp-lens)
 
-- 🌍 **Automatic Discovery**: Detects MCP configurations from global VS Code settings and workspace `mcp.json` files
-- 🔍 **Beautiful Interface**: Clean, card-based UI with real-time status indicators and tool information
-- ⚡ **Server Control**: Start, stop, and restart MCP servers with one click
-- 📊 **Live Updates**: See tool counts and status changes as servers load
-- 🎯 **Smart Filtering**: Toggle between global MCPs, workspace MCPs, or view both
-- 🔧 **Quick Configuration**: Direct links to edit your MCP configuration files
-- 🎨 **Theme-Aware**: Adapts seamlessly to your VS Code theme
+---
 
-## Installation
+**Thank you for your interest in MCP Lens!**
 
-Search for "MCP Lens" in the VS Code Extensions marketplace and click Install.
-
-## Quick Start
-
-1. **Open MCP Lens**: Click the MCP Lens icon in the Activity Bar (left sidebar)
-2. **View Your Servers**: The extension automatically discovers:
-   - **Global MCPs**: From your VS Code user `mcp.json`
-   - **Workspace MCPs**: From `mcp.json` in your project root
-3. **Manage Servers**: Use the play/stop/restart buttons to control servers
-4. **Configure**: Click "Configure" links to edit your MCP configuration files
-
-## MCP Configuration
-
-MCP Lens reads configurations from:
+Please update your bookmarks and stars to the new repository location.
 
 - **Global**: `~/Library/Application Support/Code/User/mcp.json` (macOS)
 - **Workspace**: `mcp.json` in your project root (recommended for project-specific servers)
