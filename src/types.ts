@@ -27,16 +27,37 @@ export interface MCPTool {
 
 /**
  * Represents the configuration for a single MCP server
+ * 
+ * Standard MCP Server Fields (from VS Code documentation):
+ * @see https://code.visualstudio.com/docs/copilot/customization/mcp-servers
+ * 
+ * For stdio servers:
+ * - type (Required): Server connection type - "stdio", "http", "sse"
+ * - command (Required): Command to start server executable (e.g., "npx", "node", "python", "docker")
+ * - args (Optional): Array of arguments passed to command
+ * - env (Optional): Environment variables for the server (can use ${input:api-key} syntax)
+ * - envFile (Optional): Path to environment file to load variables (e.g., "${workspaceFolder}/.env")
+ * 
+ * For HTTP/SSE servers:
+ * - type (Required): "http" or "sse"
+ * - url (Required): URL of the server
+ * - headers (Optional): HTTP headers for authentication
  */
 export interface MCPConfig {
-	/** Communication type: stdio, socket, or ipc */
-	type: 'stdio' | 'socket' | 'ipc';
-	/** Command to start the MCP server */
+	/** Communication type: stdio, http, or sse */
+	type: 'stdio' | 'http' | 'sse' | 'socket' | 'ipc';
+	/** Command to start the MCP server (required for stdio) */
 	command: string;
-	/** Arguments for the command */
+	/** Arguments for the command (optional) */
 	args?: string[];
-	/** Environment variables */
+	/** Environment variables (optional) */
 	env?: Record<string, string>;
+	/** Path to environment file (optional) */
+	envFile?: string;
+	/** URL for HTTP/SSE servers (required for http/sse types) */
+	url?: string;
+	/** HTTP headers for authentication (optional, for http/sse) */
+	headers?: Record<string, string>;
 	/** MCP server version */
 	version?: string;
 	/** Whether server is in gallery/marketplace */
@@ -100,9 +121,16 @@ export interface MCPItem {
 export type MCPFilter = 'both' | 'global' | 'local';
 
 /**
- * Tree item types for card-based UI
+ * Tree item types for elegant inline UI
  */
-export type TreeItemType = 'section' | 'mcp-card' | 'mcp-detail' | 'tools-list' | 'tool-item' | 'separator';
+export type TreeItemType =
+	| 'section'
+	| 'mcp-card'
+	| 'info-row'
+	| 'status-row'
+	| 'tools-header'
+	| 'tool-item'
+	| 'resources-header';
 
 /**
  * OS-specific paths configuration

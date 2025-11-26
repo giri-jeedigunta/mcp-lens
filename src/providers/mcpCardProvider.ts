@@ -1,5 +1,6 @@
 /**
- * Enhanced tree data provider for MCP Explorer with card-based UI
+ * Elegant tree data provider for MCP Explorer with inline expansion
+ * Inspired by Cline's beautiful MCP interface design
  * 
  * @author Giri Jeedigunta <giri.jeedigunta@gmail.com>
  */
@@ -10,7 +11,7 @@ import { getGlobalMCPPath, getLocalMCPPath } from '../constants';
 import { readMCPFile, mcpFileToItems } from '../utils/fileUtils';
 
 /**
- * Enhanced tree item for card-based UI
+ * Elegant tree item for clean inline expansion UI
  */
 export class MCPCardTreeItem extends vscode.TreeItem {
 	constructor(
@@ -21,7 +22,6 @@ export class MCPCardTreeItem extends vscode.TreeItem {
 		public readonly parentMcp?: MCPItem
 	) {
 		super(label, collapsibleState);
-
 		this.contextValue = itemType;
 		this.setupItem();
 	}
@@ -34,61 +34,51 @@ export class MCPCardTreeItem extends vscode.TreeItem {
 			case 'mcp-card':
 				this.setupMCPCard();
 				break;
-			case 'mcp-detail':
-				this.setupMCPDetail();
+			case 'info-row':
+				this.setupInfoRow();
 				break;
-			case 'tools-list':
-				this.setupToolsList();
+			case 'status-row':
+				this.setupStatusRow();
+				break;
+			case 'tools-header':
+				this.setupToolsHeader();
 				break;
 			case 'tool-item':
 				this.setupToolItem();
 				break;
-			case 'separator':
-				this.setupSeparator();
+			case 'resources-header':
+				this.setupResourcesHeader();
 				break;
 		}
 	}
 
-	private setupSeparator(): void {
-		// Minimal separator item
-		this.iconPath = undefined;
-		this.contextValue = 'separator';
-	}
-
 	private setupSection(): void {
-		// No icon for sections - keep it clean like the wireframe
 		this.iconPath = undefined;
+		this.description = '';
 	}
 
 	private setupMCPCard(): void {
-		if (!this.mcpItem) {
-			return;
-		}
+		if (!this.mcpItem) return;
 
 		const mcp = this.mcpItem;
+		const status = mcp.config.disabled ? 'disabled' : (mcp.status || 'unknown');
 		
-		// Create card-like appearance with border
-		const toolCount = mcp.toolCount ?? mcp.tools?.length ?? 0;
-		
-		// No description - let the card expand to show details
-		this.description = '';
-		this.tooltip = this.createCardTooltip(mcp);
-		this.iconPath = this.getStatusIcon(mcp);
-		
-		// Make card look more prominent
-		this.resourceUri = vscode.Uri.parse(`mcp-card://${mcp.name}`);
+		// Clean card with status indicator
+		this.iconPath = this.getStatusIcon(status);
+		this.description = this.getStatusBadge(status);
+		this.tooltip = this.createTooltip(mcp);
 	}
 
-	private setupMCPDetail(): void {
-		if (!this.parentMcp) {
-			return;
-		}
-		
-		// Detail items are not clickable
-		this.iconPath = new vscode.ThemeIcon('info');
+	private setupInfoRow(): void {
+		this.iconPath = new vscode.ThemeIcon('info', new vscode.ThemeColor('descriptionForeground'));
 	}
 
-	private setupToolsList(): void {
+	private setupStatusRow(): void {
+		if (!this.parentMcp) return;
+		this.iconPath = new vscode.ThemeIcon('pulse', new vscode.ThemeColor('charts.blue'));
+	}
+
+	private setupToolsHeader(): void {
 		this.iconPath = new vscode.ThemeIcon('tools', new vscode.ThemeColor('charts.orange'));
 	}
 
@@ -96,62 +86,55 @@ export class MCPCardTreeItem extends vscode.TreeItem {
 		this.iconPath = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('symbolIcon.methodForeground'));
 	}
 
-	private getStatusEmoji(status?: string): string {
-		switch (status) {
-			case 'running':
-				return '●';
-			case 'stopped':
-				return '○';
-			case 'error':
-				return '✕';
-			default:
-				return '◌';
-		}
+	private setupResourcesHeader(): void {
+		this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('charts.purple'));
 	}
 
-	private getStatusIcon(mcp: MCPItem): vscode.ThemeIcon {
-		if (mcp.config.disabled) {
-			return new vscode.ThemeIcon('debug-stop', new vscode.ThemeColor('errorForeground'));
-		}
-
-		switch (mcp.status) {
+	private getStatusIcon(status: string): vscode.ThemeIcon {
+		switch (status) {
 			case 'running':
 				return new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('testing.iconPassed'));
 			case 'error':
-				return new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground'));
+				return new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
+			case 'disabled':
+				return new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('descriptionForeground'));
 			case 'stopped':
-				return new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('descriptionForeground'));
+				return new vscode.ThemeIcon('circle-outline');
 			default:
 				return new vscode.ThemeIcon('circle-large-outline', new vscode.ThemeColor('descriptionForeground'));
 		}
 	}
 
-	private createCardTooltip(mcp: MCPItem): vscode.MarkdownString {
+	private getStatusBadge(status: string): string {
+		switch (status) {
+			case 'running':
+				return '● running';
+			case 'stopped':
+				return '○ stopped';
+			case 'error':
+				return '✕ error';
+			case 'disabled':
+				return '⊘ disabled';
+			default:
+				return '◌ unknown';
+		}
+	}
+
+	private createTooltip(mcp: MCPItem): vscode.MarkdownString {
 		const md = new vscode.MarkdownString();
-		md.supportHtml = true;
 		md.isTrusted = true;
 
-		md.appendMarkdown(`### ${mcp.name}\n\n`);
-		
-		md.appendMarkdown(`**Type:** ${mcp.isGlobal ? '🌐 Global' : '📁 Local'}\n\n`);
-		md.appendMarkdown(`**Status:** ${this.getStatusEmoji(mcp.status)} ${mcp.status || 'Unknown'}\n\n`);
+		md.appendMarkdown(`**${mcp.name}**\n\n`);
+		md.appendMarkdown(`Type: ${mcp.isGlobal ? 'Global' : 'Local'}\n\n`);
 		
 		if (mcp.description) {
-			md.appendMarkdown(`**Description:** ${mcp.description}\n\n`);
+			md.appendMarkdown(`${mcp.description}\n\n`);
 		}
 		
-		md.appendMarkdown(`**Command:** \`${mcp.config.command}\`\n\n`);
-		
-		if (mcp.config.args?.length) {
-			md.appendMarkdown(`**Args:** \`${mcp.config.args.join(' ')}\`\n\n`);
-		}
+		md.appendMarkdown(`Command: \`${mcp.config.command}\`\n\n`);
 		
 		const toolCount = mcp.toolCount ?? mcp.tools?.length ?? 0;
-		md.appendMarkdown(`**Tools:** ${toolCount}\n\n`);
-		
-		if (mcp.config.disabled) {
-			md.appendMarkdown(`**⚠️ Disabled**\n\n`);
-		}
+		md.appendMarkdown(`Tools: ${toolCount}`);
 
 		return md;
 	}
@@ -238,10 +221,18 @@ export class MCPCardProvider implements vscode.TreeDataProvider<MCPCardTreeItem>
 
 	private enrichMCPData(mcps: MCPItem[]): void {
 		for (const mcp of mcps) {
-			// Add placeholder tool count and description
-			mcp.toolCount = Math.floor(Math.random() * 10) + 1; // TODO: Get from actual MCP
+			// Add sample tools for demonstration
+			if (!mcp.tools) {
+				const toolCount = Math.floor(Math.random() * 5) + 1;
+				mcp.tools = Array.from({ length: toolCount }, (_, i) => ({
+					name: `tool_${i + 1}`,
+					description: `Sample tool ${i + 1} for ${mcp.name}. This is a longer description that demonstrates the ellipsis behavior when text exceeds two lines in the UI.`,
+				}));
+			}
+			mcp.toolCount = mcp.tools.length;
+			
 			if (!mcp.description) {
-				mcp.description = `${mcp.config.command} - MCP Server`;
+				mcp.description = `MCP Server for ${mcp.name}`;
 			}
 		}
 	}
@@ -259,46 +250,49 @@ export class MCPCardProvider implements vscode.TreeDataProvider<MCPCardTreeItem>
 			case 'section':
 				return this.getMCPCards(element);
 			case 'mcp-card':
-				return this.getMCPDetails(element);
-			case 'tools-list':
+				return this.getCardDetails(element);
+			case 'tools-header':
 				return this.getToolItems(element);
+			case 'resources-header':
+				return this.getResourceItems(element);
 			default:
 				return [];
 		}
 	}
 
 	private getRootSections(): MCPCardTreeItem[] {
-		this.outputChannel.appendLine('\ngetChildren called for root (card view)');
+		this.outputChannel.appendLine('\ngetChildren called for root');
 		this.outputChannel.appendLine(`Current filter: ${this.filter}`);
 
 		const sections: MCPCardTreeItem[] = [];
 
-		// Add sections with cleaner format
 		if (this.filter === 'both' || this.filter === 'global') {
 			if (this.globalMCPs.length > 0) {
-				const section = new MCPCardTreeItem(
-					`> Global MCPs (${this.globalMCPs.length})`,
-					vscode.TreeItemCollapsibleState.Expanded,
-					'section'
+				sections.push(
+					new MCPCardTreeItem(
+						`Global MCPs (${this.globalMCPs.length})`,
+						vscode.TreeItemCollapsibleState.Expanded,
+						'section'
+					)
 				);
-				sections.push(section);
 			}
 		}
 
 		if (this.filter === 'both' || this.filter === 'local') {
 			if (this.localMCPs.length > 0) {
-				const section = new MCPCardTreeItem(
-					`> Local MCPs (${this.localMCPs.length})`,
-					vscode.TreeItemCollapsibleState.Expanded,
-					'section'
+				sections.push(
+					new MCPCardTreeItem(
+						`Local MCPs (${this.localMCPs.length})`,
+						vscode.TreeItemCollapsibleState.Expanded,
+						'section'
+					)
 				);
-				sections.push(section);
 			}
 		}
 
 		if (sections.length === 0) {
 			const emptyItem = new vscode.TreeItem('No MCPs found');
-			emptyItem.description = 'Click to locate MCP file';
+			emptyItem.description = 'Click to locate';
 			emptyItem.command = {
 				command: 'mcp-lens.locateMCPFile',
 				title: 'Locate MCP File',
@@ -313,160 +307,156 @@ export class MCPCardProvider implements vscode.TreeDataProvider<MCPCardTreeItem>
 		const isGlobal = section.label.includes('Global');
 		const mcps = isGlobal ? this.globalMCPs : this.localMCPs;
 
-		// Create cards with visual hierarchy and separators
-		const cards: MCPCardTreeItem[] = [];
-		
-		for (let i = 0; i < mcps.length; i++) {
-			const mcp = mcps[i];
-			
-			// Main card item (the box)
-			const card = new MCPCardTreeItem(
-				mcp.name,
-				vscode.TreeItemCollapsibleState.Collapsed,
-				'mcp-card',
-				mcp
-			);
-			cards.push(card);
-			
-			// Add visual separator between cards (except after last one)
-			if (i < mcps.length - 1) {
-				const separator = new MCPCardTreeItem(
-					'',
-					vscode.TreeItemCollapsibleState.None,
-					'separator'
-				);
-				separator.iconPath = undefined;
-				separator.description = '━'.repeat(50);
-				cards.push(separator);
-			}
-		}
-		
-		return cards;
+		return mcps.map(
+			(mcp) =>
+				new MCPCardTreeItem(
+					mcp.name,
+					vscode.TreeItemCollapsibleState.Collapsed,
+					'mcp-card',
+					mcp
+				)
+		);
 	}
 
-	private getMCPDetails(card: MCPCardTreeItem): MCPCardTreeItem[] {
-		if (!card.mcpItem) {
-			return [];
-		}
+	private getCardDetails(card: MCPCardTreeItem): MCPCardTreeItem[] {
+		if (!card.mcpItem) return [];
 
 		const mcp = card.mcpItem;
 		const details: MCPCardTreeItem[] = [];
 
-		// Card top border separator
-		const topBorder = new MCPCardTreeItem(
-			'',
+		// Status row with inline controls
+		const status = mcp.config.disabled ? 'disabled' : (mcp.status || 'unknown');
+		const statusBadge = this.getStatusBadgeText(status);
+		const statusRow = new MCPCardTreeItem(
+			'Status',
 			vscode.TreeItemCollapsibleState.None,
-			'separator'
-		);
-		topBorder.description = '─'.repeat(60);
-		topBorder.iconPath = undefined;
-		details.push(topBorder);
-
-		// STATUS: label with action buttons on right
-		const statusLabel = new MCPCardTreeItem(
-			'STATUS:',
-			vscode.TreeItemCollapsibleState.None,
-			'mcp-detail',
+			'status-row',
 			undefined,
 			mcp
 		);
-		statusLabel.description = ''; // Action buttons will appear here via context menu
-		statusLabel.iconPath = undefined;
-		statusLabel.contextValue = 'mcp-status'; // For action buttons
-		details.push(statusLabel);
+		statusRow.description = statusBadge;
+		statusRow.contextValue = 'mcp-status';
+		details.push(statusRow);
 
-		// Empty line for spacing
-		const spacer1 = new MCPCardTreeItem(
-			'',
+		// Type info with elegant icon
+		const typeRow = new MCPCardTreeItem(
+			mcp.isGlobal ? 'Global MCP' : 'Local MCP',
 			vscode.TreeItemCollapsibleState.None,
-			'separator'
+			'info-row'
 		);
-		spacer1.iconPath = undefined;
-		details.push(spacer1);
+		typeRow.description = mcp.config.command;
+		details.push(typeRow);
 
-		// Description text (multi-line if needed)
-		const description = mcp.description || `Command: ${mcp.config.command}`;
-		const descItem = new MCPCardTreeItem(
-			description,
-			vscode.TreeItemCollapsibleState.None,
-			'mcp-detail',
-			undefined,
-			mcp
-		);
-		descItem.iconPath = undefined; // No icon for description
-		details.push(descItem);
+		// Description if available
+		if (mcp.description) {
+			const descRow = new MCPCardTreeItem(
+				mcp.description,
+				vscode.TreeItemCollapsibleState.None,
+				'info-row'
+			);
+			descRow.iconPath = new vscode.ThemeIcon('note', new vscode.ThemeColor('descriptionForeground'));
+			details.push(descRow);
+		}
 
-		// Empty line for spacing
-		const spacer2 = new MCPCardTreeItem(
-			'',
-			vscode.TreeItemCollapsibleState.None,
-			'separator'
-		);
-		spacer2.iconPath = undefined;
-		details.push(spacer2);
+		// Arguments if present
+		if (mcp.config.args && mcp.config.args.length > 0) {
+			const argsText = mcp.config.args.join(' ');
+			const argsRow = new MCPCardTreeItem(
+				'Arguments',
+				vscode.TreeItemCollapsibleState.None,
+				'info-row'
+			);
+			argsRow.description = argsText.length > 50 ? argsText.substring(0, 47) + '...' : argsText;
+			argsRow.tooltip = argsText;
+			details.push(argsRow);
+		}
 
-		// > Tools (N) - collapsible section
+		// Environment variables if present
+		if (mcp.config.env && Object.keys(mcp.config.env).length > 0) {
+			const envCount = Object.keys(mcp.config.env).length;
+			const envRow = new MCPCardTreeItem(
+				'Environment',
+				vscode.TreeItemCollapsibleState.None,
+				'info-row'
+			);
+			envRow.description = `${envCount} variable${envCount > 1 ? 's' : ''}`;
+			details.push(envRow);
+		}
+
+		// Tools section with count
 		const toolCount = mcp.toolCount ?? mcp.tools?.length ?? 0;
-		const toolsItem = new MCPCardTreeItem(
-			`> Tools (${toolCount})`,
-			toolCount > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
-			'tools-list',
-			mcp,
-			mcp
-		);
-		toolsItem.iconPath = undefined; // Chevron will show collapse state
-		details.push(toolsItem);
+		if (toolCount > 0) {
+			const toolsHeader = new MCPCardTreeItem(
+				`Tools`,
+				vscode.TreeItemCollapsibleState.Collapsed,
+				'tools-header',
+				mcp,
+				mcp
+			);
+			toolsHeader.description = `${toolCount} available`;
+			details.push(toolsHeader);
+		}
+
+		// Resources section (placeholder for future)
+		const resourceCount = 0;
+		if (resourceCount > 0) {
+			const resourcesHeader = new MCPCardTreeItem(
+				'Resources',
+				vscode.TreeItemCollapsibleState.Collapsed,
+				'resources-header',
+				mcp,
+				mcp
+			);
+			resourcesHeader.description = `${resourceCount} available`;
+			details.push(resourcesHeader);
+		}
 
 		return details;
 	}
 
-	private getToolItems(toolsList: MCPCardTreeItem): MCPCardTreeItem[] {
-		if (!toolsList.mcpItem?.tools) {
-			// Generate placeholder tools for demo
-			const toolCount = toolsList.mcpItem?.toolCount ?? 0;
-			const tools: MCPCardTreeItem[] = [];
-			
-			for (let i = 1; i <= toolCount; i++) {
-				const toolItem = new MCPCardTreeItem(
-					`tool_${i}`,
-					vscode.TreeItemCollapsibleState.None,
-					'tool-item',
-					toolsList.mcpItem
-				);
-				toolItem.description = 'Tool description...';
-				tools.push(toolItem);
-			}
-			
-			return tools;
+	private getToolItems(toolsHeader: MCPCardTreeItem): MCPCardTreeItem[] {
+		if (!toolsHeader.mcpItem) return [];
+
+		const mcp = toolsHeader.mcpItem;
+		if (mcp.tools && mcp.tools.length > 0) {
+			return mcp.tools.map(
+				(tool) =>
+					new MCPCardTreeItem(tool.name, vscode.TreeItemCollapsibleState.None, 'tool-item', mcp)
+			);
 		}
 
-		return toolsList.mcpItem.tools.map((tool) => {
-			const toolItem = new MCPCardTreeItem(
-				tool.name,
-				vscode.TreeItemCollapsibleState.None,
-				'tool-item',
-				toolsList.mcpItem
+		// Generate placeholder tools if not available
+		const toolCount = mcp.toolCount ?? 0;
+		const tools: MCPCardTreeItem[] = [];
+		for (let i = 1; i <= toolCount; i++) {
+			tools.push(
+				new MCPCardTreeItem(`tool_${i}`, vscode.TreeItemCollapsibleState.None, 'tool-item', mcp)
 			);
-			toolItem.description = tool.description || '';
-			toolItem.tooltip = tool.description;
-			return toolItem;
-		});
+		}
+		return tools;
 	}
 
-	private getStatusEmojiForDetail(status?: string): string {
-		switch (status) {
-			case 'running':
-				return '🟢';
-			case 'stopped':
-				return '⚪';
-			case 'error':
-				return '🔴';
-			default:
-				return '⚫';
-		}
+	private getResourceItems(resourcesHeader: MCPCardTreeItem): MCPCardTreeItem[] {
+		// Placeholder for future resources implementation
+		return [];
 	}
 
 	getMCPByName(name: string): MCPItem | undefined {
 		return [...this.localMCPs, ...this.globalMCPs].find((mcp) => mcp.name === name);
+	}
+
+	private getStatusBadgeText(status: string): string {
+		switch (status) {
+			case 'running':
+				return '● running';
+			case 'stopped':
+				return '○ stopped';
+			case 'error':
+				return '✕ error';
+			case 'disabled':
+				return '⊘ disabled';
+			default:
+				return '◌ unknown';
+		}
 	}
 }

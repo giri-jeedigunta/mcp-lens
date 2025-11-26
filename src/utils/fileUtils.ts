@@ -29,6 +29,50 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
  * @param {string} filePath - The path to the MCP JSON file
  * @returns {Promise<MCPFile | null>} The parsed MCP file or null if it doesn't exist or is invalid
  */
+/**
+ * Strip JSON comments (JSONC format support)
+ * Removes single-line (//) and multi-line (/* *\/) comments
+ */
+const stripJsonComments = (jsonString: string): string => {
+	// Remove multi-line comments
+	let result = jsonString.replace(/\/\*[\s\S]*?\*\//g, '');
+	
+	// Remove single-line comments (but preserve strings)
+	const lines = result.split('\n');
+	const cleanedLines = lines.map(line => {
+		// Find // that's not inside a string
+		let inString = false;
+		let stringChar = '';
+		let commentIndex = -1;
+		
+		for (let i = 0; i < line.length - 1; i++) {
+			const char = line[i];
+			const nextChar = line[i + 1];
+			
+			// Toggle string state
+			if ((char === '"' || char === "'") && (i === 0 || line[i - 1] !== '\\')) {
+				if (!inString) {
+					inString = true;
+					stringChar = char;
+				} else if (char === stringChar) {
+					inString = false;
+					stringChar = '';
+				}
+			}
+			
+			// Find comment start outside of strings
+			if (!inString && char === '/' && nextChar === '/') {
+				commentIndex = i;
+				break;
+			}
+		}
+		
+		return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+	});
+	
+	return cleanedLines.join('\n');
+};
+
 export const readMCPFile = async (filePath: string): Promise<MCPFile | null> => {
 	try {
 		console.log(`[fileUtils] Checking file: ${filePath}`);
@@ -42,7 +86,11 @@ export const readMCPFile = async (filePath: string): Promise<MCPFile | null> => 
 		const content = await fs.readFile(filePath, 'utf-8');
 		console.log(`[fileUtils] File content length: ${content.length} bytes`);
 		
-		const parsed = JSON.parse(content) as MCPFile;
+		// Strip comments for JSONC support
+		const cleanedContent = stripJsonComments(content);
+		console.log(`[fileUtils] Cleaned content length: ${cleanedContent.length} bytes`);
+		
+		const parsed = JSON.parse(cleanedContent) as MCPFile;
 		console.log(`[fileUtils] JSON parsed successfully`);
 		
 		// Validate the structure
