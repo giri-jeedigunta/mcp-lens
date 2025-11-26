@@ -49,6 +49,9 @@ export const COMMANDS = {
 	OPEN_MCP_DETAILS: 'mcp-lens.openMCPDetails',
 	OPEN_WITH_INSPECTOR: 'mcp-lens.openWithInspector',
 	LOCATE_MCP_FILE: 'mcp-lens.locateMCPFile',
+	START_MCP: 'mcp-lens.startMCP',
+	STOP_MCP: 'mcp-lens.stopMCP',
+	RESTART_MCP: 'mcp-lens.restartMCP',
 } as const;
 
 /**
